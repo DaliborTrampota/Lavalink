@@ -1,5 +1,7 @@
 package lavalink.server.io
 
+import lavalink.server.player.filters.Band
+import lavalink.server.player.filters.FilterChain
 import lavalink.server.util.Util
 import org.json.JSONObject
 import org.slf4j.Logger
@@ -14,6 +16,9 @@ class WebSocketHandlers(private val contextMap: Map<String, SocketContext>) {
         private val log: Logger = LoggerFactory.getLogger(WebSocketHandlers::class.java)
     }
 
+    private var loggedVolumeDeprecationWarning = false
+    private var loggedEqualizerDeprecationWarning = false
+
     fun voiceUpdate(session: WebSocketSession, json: JSONObject) {
         val sessionId = json.getString("sessionId")
         val guildId = json.getString("guildId")
@@ -27,7 +32,7 @@ class WebSocketHandlers(private val contextMap: Map<String, SocketContext>) {
             return
         }
 
-        val sktContext = contextMap[session.id]!!
+        val sktContext = session.context
         val member = MagmaMember.builder()
                 .userId(sktContext.userId)
                 .guildId(guildId)
@@ -41,7 +46,7 @@ class WebSocketHandlers(private val contextMap: Map<String, SocketContext>) {
     }
 
     fun play(session: WebSocketSession, json: JSONObject) {
-        val ctx = contextMap[session.id]!!
+        val ctx = session.context
         val player = ctx.getPlayer(json.getString("guildId"))
         val noReplace = json.optBoolean("noReplace", false)
 
@@ -58,12 +63,18 @@ class WebSocketHandlers(private val contextMap: Map<String, SocketContext>) {
 
         player.setPause(json.optBoolean("pause", false))
         if (json.has("volume")) {
-            player.setVolume(json.getInt("volume"))
+            if(!loggedVolumeDeprecationWarning) log.warn("The volume property in the play operation has been deprecated" +
+                    "and will be removed in v4. Please configure a filter instead. Note that the new filter takes a " +
+                    "float value with 1.0 being 100%")
+            loggedVolumeDeprecationWarning = true
+            val filters = player.filters ?: FilterChain()
+            filters.volume = json.getFloat("volume") / 100
+            player.filters = filters
         }
 
         player.play(track)
 
-        val context = contextMap[session.id]!!
+        val context = session.context
 
         val m = MagmaMember.builder()
                 .userId(context.userId)
@@ -75,41 +86,48 @@ class WebSocketHandlers(private val contextMap: Map<String, SocketContext>) {
     }
 
     fun stop(session: WebSocketSession, json: JSONObject) {
-        val player = contextMap[session.id]!!.getPlayer(json.getString("guildId"))
+        val player = session.context.getPlayer(json.getString("guildId"))
         player.stop()
     }
 
     fun pause(session: WebSocketSession, json: JSONObject) {
-        val context = contextMap[session.id]!!
+        val context = session.context
         val player = context.getPlayer(json.getString("guildId"))
         player.setPause(json.getBoolean("pause"))
         SocketServer.sendPlayerUpdate(context, player)
     }
 
     fun seek(session: WebSocketSession, json: JSONObject) {
-        val context = contextMap[session.id]!!
+        val context = session.context
         val player = context.getPlayer(json.getString("guildId"))
         player.seekTo(json.getLong("position"))
         SocketServer.sendPlayerUpdate(context, player)
     }
 
     fun volume(session: WebSocketSession, json: JSONObject) {
-        val player = contextMap[session.id]!!.getPlayer(json.getString("guildId"))
+        val player = session.context.getPlayer(json.getString("guildId"))
         player.setVolume(json.getInt("volume"))
     }
 
     fun equalizer(session: WebSocketSession, json: JSONObject) {
-        val player = contextMap[session.id]!!.getPlayer(json.getString("guildId"))
-        val bands = json.getJSONArray("bands")
+        if (!loggedEqualizerDeprecationWarning) log.warn("The 'equalizer' op has been deprecated in favour of the " +
+                "'filters' op. Please switch to use that one, as this op will get removed in v4.")
+        loggedEqualizerDeprecationWarning = true
 
-        for (i in 0 until bands.length()) {
-            val band = bands.getJSONObject(i)
-            player.setBandGain(band.getInt("band"), band.getFloat("gain"))
+        val player = session.context.getPlayer(json.getString("guildId"))
+
+        val list = mutableListOf<Band>()
+        json.getJSONArray("bands").forEach { b ->
+            val band = b as JSONObject
+            list.add(Band(band.getInt("band"), band.getFloat("gain")))
         }
+        val filters = player.filters ?: FilterChain()
+        filters.equalizer = list
+        player.filters = filters
     }
 
     fun destroy(session: WebSocketSession, json: JSONObject) {
-        val socketContext = contextMap[session.id]!!
+        val socketContext = session.context
         val player = socketContext.players.remove(json.getString("guildId"))
         player?.stop()
         val mem = MagmaMember.builder()
@@ -121,8 +139,15 @@ class WebSocketHandlers(private val contextMap: Map<String, SocketContext>) {
     }
 
     fun configureResuming(session: WebSocketSession, json: JSONObject) {
-        val socketContext = contextMap[session.id]!!
+        val socketContext = session.context
         socketContext.resumeKey = json.optString("key", null)
         if (json.has("timeout")) socketContext.resumeTimeout = json.getLong("timeout")
     }
+
+    fun filters(session: WebSocketSession, guildId: String, json: String) {
+        val player = session.context.getPlayer(guildId)
+        player.filters = FilterChain.parse(json)
+    }
+
+    private val WebSocketSession.context get() = contextMap[this.id] ?: error("Unknown context for WS session")
 }

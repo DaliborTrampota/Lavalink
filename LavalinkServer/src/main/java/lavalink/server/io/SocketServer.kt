@@ -152,6 +152,7 @@ class SocketServer(
             "destroy"           -> handlers.destroy(session, json)
             "configureResuming" -> handlers.configureResuming(session, json)
             "equalizer"         -> handlers.equalizer(session, json)
+            "filters"           -> handlers.filters(session, json.getString("guildId"), message.payload)
             else                -> log.warn("Unexpected operation: " + json.getString("op"))
             // @formatter:on
         }
