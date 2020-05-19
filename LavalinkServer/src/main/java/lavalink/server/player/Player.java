@@ -30,30 +30,35 @@ import com.sedmelluq.discord.lavaplayer.player.event.AudioEventAdapter;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrackEndReason;
 import com.sedmelluq.discord.lavaplayer.track.playback.AudioFrame;
+import io.netty.buffer.ByteBuf;
 import lavalink.server.io.SocketContext;
 import lavalink.server.io.SocketServer;
 import net.dv8tion.jda.api.audio.AudioSendHandler;
 import lavalink.server.player.filters.FilterChain;
+import moe.kyokobot.koe.VoiceConnection;
+import moe.kyokobot.koe.media.OpusAudioFrameProvider;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
-import java.nio.ByteBuffer;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
-public class Player extends AudioEventAdapter implements AudioSendHandler {
+public class Player extends AudioEventAdapter {
 
     private static final Logger log = LoggerFactory.getLogger(Player.class);
 
-    private SocketContext socketContext;
+    private final SocketContext socketContext;
     private final String guildId;
     private final AudioPlayer player;
-    private AudioLossCounter audioLossCounter = new AudioLossCounter();
+    private final AudioLossCounter audioLossCounter = new AudioLossCounter();
     private AudioFrame lastFrame = null;
     private ScheduledFuture myFuture = null;
     private FilterChain filters;
+    private ScheduledFuture<?> myFuture = null;
+    private final EqualizerFactory equalizerFactory = new EqualizerFactory();
+    private boolean isEqualizerApplied = false;
 
     public Player(SocketContext socketContext, String guildId, AudioPlayerManager audioPlayerManager) {
         this.socketContext = socketContext;
@@ -66,6 +71,7 @@ public class Player extends AudioEventAdapter implements AudioSendHandler {
 
     public void play(AudioTrack track) {
         player.playTrack(track);
+        SocketServer.Companion.sendPlayerUpdate(socketContext, this);
     }
 
     public void stop() {
@@ -115,29 +121,6 @@ public class Player extends AudioEventAdapter implements AudioSendHandler {
         return player.isPaused();
     }
 
-    @Override
-    public boolean canProvide() {
-        lastFrame = player.provide();
-
-        if(lastFrame == null) {
-            audioLossCounter.onLoss();
-            return false;
-        } else {
-            audioLossCounter.onSuccess();
-            return true;
-        }
-    }
-
-    @Override
-    public ByteBuffer provide20MsAudio() {
-        return ByteBuffer.wrap(lastFrame.getData());
-    }
-
-    @Override
-    public boolean isOpus() {
-        return true;
-    }
-
     public AudioLossCounter getAudioLossCounter() {
         return audioLossCounter;
     }
@@ -176,4 +159,32 @@ public class Player extends AudioEventAdapter implements AudioSendHandler {
             player.setFilterFactory(null);
         }
     }
+    public void provideTo(VoiceConnection connection) {
+        connection.setAudioSender(new Provider(connection));
+    }
+
+    private class Provider extends OpusAudioFrameProvider {
+        public Provider(VoiceConnection connection) {
+            super(connection);
+        }
+
+        @Override
+        public boolean canProvide() {
+            lastFrame = player.provide();
+
+            if(lastFrame == null) {
+                audioLossCounter.onLoss();
+                return false;
+            } else {
+                return true;
+            }
+        }
+
+        @Override
+        public void retrieveOpusFrame(ByteBuf buf) {
+            audioLossCounter.onSuccess();
+            buf.writeBytes(lastFrame.getData());
+        }
+    }
+
 }
