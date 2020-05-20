@@ -1,5 +1,7 @@
 package lavalink.server.io
 
+import lavalink.server.player.filters.Band
+import lavalink.server.player.filters.FilterChain
 import lavalink.server.util.Util
 import moe.kyokobot.koe.VoiceServerInfo
 import org.json.JSONObject
@@ -44,7 +46,13 @@ class WebSocketHandlers(private val contextMap: Map<String, SocketContext>) {
 
         player.setPause(json.optBoolean("pause", false))
         if (json.has("volume")) {
-            player.setVolume(json.getInt("volume"))
+            if(!loggedVolumeDeprecationWarning) log.warn("The volume property in the play operation has been deprecated" +
+                    "and will be removed in v4. Please configure a filter instead. Note that the new filter takes a " +
+                    "float value with 1.0 being 100%")
+            loggedVolumeDeprecationWarning = true
+            val filters = player.filters ?: FilterChain()
+            filters.volume = json.getFloat("volume") / 100
+            player.filters = filters
         }
 
         player.play(track)
@@ -79,10 +87,14 @@ class WebSocketHandlers(private val contextMap: Map<String, SocketContext>) {
         val player = context.getPlayer(json.getString("guildId"))
         val bands = json.getJSONArray("bands")
 
-        for (i in 0 until bands.length()) {
-            val band = bands.getJSONObject(i)
-            player.setBandGain(band.getInt("band"), band.getFloat("gain"))
+        val list = mutableListOf<Band>()
+        json.getJSONArray("bands").forEach { b ->
+            val band = b as JSONObject
+            list.add(Band(band.getInt("band"), band.getFloat("gain")))
         }
+        val filters = player.filters ?: FilterChain()
+        filters.equalizer = list
+        player.filters = filters
     }
 
     fun destroy(context: SocketContext, json: JSONObject) {
@@ -93,4 +105,11 @@ class WebSocketHandlers(private val contextMap: Map<String, SocketContext>) {
         context.resumeKey = json.optString("key", null)
         if (json.has("timeout")) context.resumeTimeout = json.getLong("timeout")
     }
+
+    fun filters(context: SocketContext, guildId: String, json: String) {
+        val player = context.getPlayer(guildId)
+        player.filters = FilterChain.parse(json)
+    }
+
+    private val WebSocketSession.context get() = contextMap[this.id] ?: error("Unknown context for WS session")
 }
