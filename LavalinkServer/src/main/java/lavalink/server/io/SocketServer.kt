@@ -31,7 +31,6 @@ import moe.kyokobot.koe.Koe
 import moe.kyokobot.koe.KoeOptions
 import lavalink.server.config.AudioSendFactoryConfiguration
 import lavalink.server.util.Util
-import net.dv8tion.jda.api.audio.factory.IAudioSendFactory
 import org.json.JSONObject
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -144,16 +143,16 @@ class SocketServer(
 
         when (json.getString("op")) {
             // @formatter:off
-            "voiceUpdate"       -> handlers.voiceUpdate(session, json)
-            "play"              -> handlers.play(session, json)
-            "stop"              -> handlers.stop(session, json)
-            "pause"             -> handlers.pause(session, json)
-            "seek"              -> handlers.seek(session, json)
-            "volume"            -> handlers.volume(session, json)
-            "destroy"           -> handlers.destroy(session, json)
-            "configureResuming" -> handlers.configureResuming(session, json)
-            "equalizer"         -> handlers.equalizer(session, json)
-            "filters"           -> handlers.filters(session, json.getString("guildId"), message.payload)
+            "voiceUpdate"       -> handlers.voiceUpdate(context, json)
+            "play"              -> handlers.play(context, json)
+            "stop"              -> handlers.stop(context, json)
+            "pause"             -> handlers.pause(context, json)
+            "seek"              -> handlers.seek(context, json)
+            "volume"            -> handlers.volume(context, json)
+            "destroy"           -> handlers.destroy(context, json)
+            "configureResuming" -> handlers.configureResuming(context, json)
+            "equalizer"         -> handlers.equalizer(context, json)
+            "filters"           -> handlers.filters(context, json.getString("guildId"), message.payload)
             else                -> log.warn("Unexpected operation: " + json.getString("op"))
             // @formatter:on
         }
