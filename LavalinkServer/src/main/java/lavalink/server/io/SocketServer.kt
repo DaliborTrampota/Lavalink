@@ -23,13 +23,10 @@
 package lavalink.server.io
 
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager
-import lavalink.server.config.AudioSendFactoryConfiguration
 import lavalink.server.config.ServerConfig
 import lavalink.server.player.Player
-import lavalink.server.util.Util
 import moe.kyokobot.koe.Koe
 import moe.kyokobot.koe.KoeOptions
-import net.dv8tion.jda.core.audio.factory.IAudioSendFactory
 import org.json.JSONObject
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -159,7 +156,6 @@ class SocketServer(
             "destroy"           -> handlers.destroy(context, json)
             "configureResuming" -> handlers.configureResuming(context, json)
             "equalizer"         -> handlers.equalizer(context, json)
-            "filters"           -> handlers.filters(context, json.getString("guildId"), message.payload)
             else                -> log.warn("Unexpected operation: " + json.getString("op"))
             // @formatter:on
         }
