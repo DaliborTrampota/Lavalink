@@ -50,12 +50,4 @@ public class Util {
         return Base64.encodeBase64String(baos.toByteArray());
     }
 
-    public static Throwable getRootCause(Throwable throwable) {
-        Throwable rootCause = throwable;
-        while (rootCause.getCause() != null) {
-            rootCause = rootCause.getCause();
-        }
-        return rootCause;
-    }
-
 }
