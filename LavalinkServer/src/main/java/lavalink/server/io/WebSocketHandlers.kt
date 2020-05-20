@@ -1,5 +1,7 @@
 package lavalink.server.io
 
+import lavalink.server.player.filters.Band
+import lavalink.server.player.filters.FilterChain
 import lavalink.server.util.Util
 import org.json.JSONObject
 import org.slf4j.Logger
@@ -47,7 +49,13 @@ class WebSocketHandlers(private val contextMap: Map<String, SocketContext>) {
 
         player.setPause(json.optBoolean("pause", false))
         if (json.has("volume")) {
-            player.setVolume(json.getInt("volume"))
+            if(!loggedVolumeDeprecationWarning) log.warn("The volume property in the play operation has been deprecated" +
+                    "and will be removed in v4. Please configure a filter instead. Note that the new filter takes a " +
+                    "float value with 1.0 being 100%")
+            loggedVolumeDeprecationWarning = true
+            val filters = player.filters ?: FilterChain()
+            filters.volume = json.getFloat("volume") / 100
+            player.filters = filters
         }
 
         player.play(track)
@@ -85,6 +93,9 @@ class WebSocketHandlers(private val contextMap: Map<String, SocketContext>) {
             val band = bands.getJSONObject(i)
             player.setBandGain(band.getInt("band"), band.getFloat("gain"))
         }
+        val filters = player.filters ?: FilterChain()
+        filters.equalizer = list
+        player.filters = filters
     }
 
     fun destroy(session: WebSocketSession, json: JSONObject) {
@@ -94,5 +105,10 @@ class WebSocketHandlers(private val contextMap: Map<String, SocketContext>) {
     fun configureResuming(session: WebSocketSession, json: JSONObject) {
         session.context.resumeKey = json.optString("key", null)
         if (json.has("timeout")) context.resumeTimeout = json.getLong("timeout")
+    }
+
+    fun filters(session: WebSocketSession, guildId: String, json: String) {
+        val player = session.context.getPlayer(guildId)
+        player.filters = FilterChain.parse(json)
     }
 }
