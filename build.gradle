@@ -52,7 +52,7 @@ subprojects {
 
     ext {
         //@formatter:off
-        lavaplayerVersion               = 'bd21006'
+        lavaplayerVersion               = 'bce82c7'
         lavaplayerIpRotatorVersion      = '0.1.7'
         magmaVersion                    = '0.12.5'
         jdaNasVersion                   = '1.1.0'
