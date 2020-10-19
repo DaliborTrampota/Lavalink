@@ -34,6 +34,9 @@ import lavalink.server.io.SocketContext;
 import lavalink.server.io.SocketServer;
 import net.dv8tion.jda.api.audio.AudioSendHandler;
 import lavalink.server.player.filters.FilterChain;
+import lavalink.server.config.ServerConfig;
+import moe.kyokobot.koe.VoiceConnection;
+import moe.kyokobot.koe.media.OpusAudioFrameProvider;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,15 +52,17 @@ public class Player extends AudioEventAdapter implements AudioSendHandler {
 
     private SocketContext socketContext;
     private final String guildId;
+    private final ServerConfig serverConfig;
     private final AudioPlayer player;
     private AudioLossCounter audioLossCounter = new AudioLossCounter();
     private AudioFrame lastFrame = null;
     private ScheduledFuture myFuture = null;
     private FilterChain filters;
 
-    public Player(SocketContext socketContext, String guildId, AudioPlayerManager audioPlayerManager) {
+    public Player(SocketContext socketContext, String guildId, AudioPlayerManager audioPlayerManager, ServerConfig serverConfig) {
         this.socketContext = socketContext;
         this.guildId = guildId;
+        this.serverConfig = serverConfig;
         this.player = audioPlayerManager.createPlayer();
         this.player.addListener(this);
         this.player.addListener(new EventEmitter(audioPlayerManager, this));
@@ -142,6 +147,10 @@ public class Player extends AudioEventAdapter implements AudioSendHandler {
         return audioLossCounter;
     }
 
+    private int getInterval() {
+        return serverConfig.getPlayerUpdateInterval();
+    }
+
     public boolean isPlaying() {
         return player.getPlayingTrack() != null && !player.isPaused();
     }
@@ -158,7 +167,7 @@ public class Player extends AudioEventAdapter implements AudioSendHandler {
                 if (socketContext.getSessionPaused()) return;
 
                 SocketServer.Companion.sendPlayerUpdate(socketContext, this);
-            }, 0, 5, TimeUnit.SECONDS);
+            }, 0, this.getInterval(), TimeUnit.SECONDS);
         }
     }
 
