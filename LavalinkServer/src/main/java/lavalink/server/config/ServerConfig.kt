@@ -33,7 +33,6 @@ class ServerConfig {
     var sentryDsn = ""
     var bufferDurationMs: Int? = null
     var youtubePlaylistLoadLimit: Int? = null
-    var playerUpdateInterval: Int? = 5
     var isGcWarnings = true
     var isYoutubeSearchEnabled = true
     var isSoundcloudSearchEnabled = true

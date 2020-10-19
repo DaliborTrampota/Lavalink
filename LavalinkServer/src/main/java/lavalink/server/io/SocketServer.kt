@@ -92,14 +92,7 @@ class SocketServer(
 
         shardCounts[userId] = shardCount
 
-        contextMap[session.id] = SocketContext(
-                audioPlayerManager,
-                serverConfig,
-                session,
-                this,
-                userId,
-                koe.newClient(userId.toLong())
-        )
+        contextMap[session.id] = SocketContext(audioPlayerManager, session, this, userId)
         log.info("Connection successfully established from " + session.remoteAddress!!)
     }
 

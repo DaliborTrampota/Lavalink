@@ -34,13 +34,8 @@ bootRun {
 }
 
 dependencies {
-    compile (group: 'moe.kyokobot.koe', name: 'core', version: koeVersion) {
-        // This version of SLF4J does not recognise Logback 1.2.3
-        exclude group: "org.slf4j", module: "slf4j-api"
-    }
-    compile group: 'moe.kyokobot.koe', name: 'ext-udpqueue', version: koeVersion
-    //compile group: 'com.sedmelluq', name: 'lavaplayer', version: lavaplayerVersion
-    compile group: 'com.github.devoxin', name: 'lavaplayer', version: '1.3.59'
+    compile group: 'space.npstr.Magma', name: 'magma', version: magmaVersion
+    compile group: 'com.github.Devoxin', name: 'lavaplayer', version: lavaplayerVersion
     compile group: 'com.sedmelluq', name: 'lavaplayer-ext-youtube-rotator', version: lavaplayerIpRotatorVersion
     compile group: 'com.sedmelluq', name: 'jda-nas', version: jdaNasVersion 
     compile group: 'org.jetbrains.kotlin', name: 'kotlin-reflect', version: kotlinVersion

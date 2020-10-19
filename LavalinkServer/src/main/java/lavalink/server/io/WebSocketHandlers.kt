@@ -2,12 +2,13 @@ package lavalink.server.io
 
 import lavalink.server.player.filters.Band
 import lavalink.server.player.filters.FilterChain
-import com.sedmelluq.discord.lavaplayer.track.TrackMarker
-import lavalink.server.player.TrackEndMarkerHandler
 import lavalink.server.util.Util
 import org.json.JSONObject
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import org.springframework.web.socket.WebSocketSession
+import space.npstr.magma.api.MagmaMember
+import space.npstr.magma.api.MagmaServerUpdate
 
 class WebSocketHandlers(private val contextMap: Map<String, SocketContext>) {
 
@@ -31,7 +32,17 @@ class WebSocketHandlers(private val contextMap: Map<String, SocketContext>) {
             return
         }
 
-        context.getVoiceConnection(guildId).connect(VoiceServerInfo(sessionId, endpoint, token))
+        val sktContext = session.context
+        val member = MagmaMember.builder()
+                .userId(sktContext.userId)
+                .guildId(guildId)
+                .build()
+        val serverUpdate = MagmaServerUpdate.builder()
+                .sessionId(sessionId)
+                .endpoint(endpoint)
+                .token(token)
+                .build()
+        sktContext.magma.provideVoiceServerUpdate(member, serverUpdate)
     }
 
     fun play(session: WebSocketSession, json: JSONObject) {
@@ -59,15 +70,6 @@ class WebSocketHandlers(private val contextMap: Map<String, SocketContext>) {
             val filters = player.filters ?: FilterChain()
             filters.volume = json.getFloat("volume") / 100
             player.filters = filters
-        }
-
-        if (json.has("endTime")) {
-            val stopTime = json.getLong("endTime")
-            if (stopTime > 0) {
-                val handler = TrackEndMarkerHandler(player)
-                val marker = TrackMarker(stopTime, handler)
-                track.setMarker(marker)
-            }
         }
 
         player.play(track)

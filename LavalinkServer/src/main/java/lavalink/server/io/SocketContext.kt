@@ -29,12 +29,6 @@ import io.undertow.websockets.core.WebSocketCallback
 import io.undertow.websockets.core.WebSocketChannel
 import io.undertow.websockets.core.WebSockets
 import io.undertow.websockets.jsr.UndertowSession
-import lavalink.server.player.Player
-import lavalink.server.config.ServerConfig
-import moe.kyokobot.koe.KoeClient
-import moe.kyokobot.koe.KoeEventAdapter
-import moe.kyokobot.koe.VoiceConnection
-import moe.kyokobot.koe.VoiceServerInfo
 import org.json.JSONObject
 import org.slf4j.LoggerFactory
 import org.springframework.web.socket.WebSocketSession
@@ -53,8 +47,7 @@ import java.util.function.Supplier
 
 class SocketContext internal constructor(
         val audioPlayerManager: AudioPlayerManager,
-        val serverConfig: ServerConfig,
-        private var session: WebSocketSession,
+        var session: WebSocketSession,
         private val socketServer: SocketServer,
         val userId: String
 ) {
@@ -100,7 +93,7 @@ class SocketContext internal constructor(
     }
 
     internal fun getPlayer(guildId: String) = players.computeIfAbsent(guildId) {
-        Player(this, guildId, audioPlayerManager, serverConfig)
+        Player(this, guildId, audioPlayerManager)
     }
 
     internal fun getPlayers(): Map<String, Player> {
