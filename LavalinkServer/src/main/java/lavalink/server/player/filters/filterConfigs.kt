@@ -5,6 +5,7 @@ import com.github.natanbc.lavadsp.timescale.TimescalePcmAudioFilter
 import com.github.natanbc.lavadsp.tremolo.TremoloPcmAudioFilter
 import com.github.natanbc.lavadsp.vibrato.VibratoPcmAudioFilter
 import com.github.natanbc.lavadsp.distortion.DistortionPcmAudioFilter
+//import com.github.natanbc.lavadsp.rotation.RotationPcmAudioFilter
 import com.github.natanbc.lavadsp.volume.VolumePcmAudioFilter
 import com.sedmelluq.discord.lavaplayer.filter.AudioFilter
 import com.sedmelluq.discord.lavaplayer.filter.FloatPcmAudioFilter
@@ -123,7 +124,19 @@ class DistortionConfig(
     override val isEnabled: Boolean get() = sinOffset != 0.0f || sinScale != 1.0f || cosOffset != 0.0f || cosScale != 1.0f || tanOffset != 0.0f || tanScale != 1.0f || offset != 0.0f || scale != 1.0f
 
 }
-
+/*
+*   class RotationConfig(
+*       private val rotationHz: Float = 0.2f
+*   ) : FilterConfig(){
+*    
+*       override fun build(format: AudioDataFormat, output: FloatPcmAudioFilter): FloatPcmAudioFilter {
+*           return RotationPcmAudioFilter(output, format.channelCount)
+*               .setRotationSpeed(rotationHz)
+*   }
+*
+*       override val isEnabled: Boolean get() = rotationHz != 0.0f
+*   }
+*/
 abstract class FilterConfig {
     abstract fun build(format: AudioDataFormat, output: FloatPcmAudioFilter): FloatPcmAudioFilter
     abstract val isEnabled: Boolean
