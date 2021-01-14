@@ -37,7 +37,7 @@ public class SentryConfiguration {
         }
 
         if (dsn != null && !dsn.isEmpty()) {
-            turnOn(dsn, sentryConfig.getTags(), sentryConfig.getEnvironment());
+            turnOn(dsn, sentryConfig.getTags());
             if (warnDeprecatedDsnConfig) {
                 log.warn("Please update the location of the sentry dsn in lavalinks config file / your environment "
                         + "vars, it is now located under 'sentry.dsn' instead of 'lavalink.server.sentryDsn'.");
